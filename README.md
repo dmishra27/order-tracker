@@ -41,7 +41,7 @@ Loki is at <http://127.0.0.1:3100> and Tempo at <http://127.0.0.1:3200>. Use `LO
 
 ## Incident responder
 
-`incident-response/responder.py` receives Grafana alert webhooks on `127.0.0.1:8001`. For each alert, it saves the relevant metrics, logs, and traces to `incident-response/incidents/<id>/`. It then runs Claude Code headless with read-only tools and saves the investigation to `response.md` in the same folder. Start it on the host with `uv run python incident-response/responder.py`. See [`incident-response/README.md`](incident-response/README.md).
+`incident-response/responder.py` receives Grafana alert webhooks on `127.0.0.1:8001`. For each alert, it saves the relevant metrics, logs, and traces to `incident-response/incidents/<id>/`. It then runs Claude Code headless, with no shell and edit access limited to `app/` and `tests/`, in a git worktree on an `incident/<id>` branch. If Claude changes code, the responder tests it in a container with no network, commits it to that branch, redeploys the `app` service from it, and rolls back if the failing requests don't recover. The report goes to `response.md` in the incident folder. Set `AUTO_REMEDIATE=0` for read-only investigations. Start it on the host with `uv run python incident-response/responder.py`. See [`incident-response/README.md`](incident-response/README.md).
 
 Outside Compose, the app prints telemetry to the console unless `OTEL_EXPORTER_OTLP_ENDPOINT` is set.
 

@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -153,7 +154,8 @@ def test_run_claude_saves_response(tmp_path, monkeypatch):
     assert f"read {len(prompt)} chars" in response
     assert "session_id: sess-1" in response
     assert "<evidence>\nevidence with \"quotes\" & | pipes\n</evidence>" in prompt
-    assert "`incident/`" in prompt
+    assert f"`{incident_dir.as_posix()}/`" in prompt
+    assert responder.READ_ONLY_CAPABILITIES in prompt
 
 
 def test_run_claude_drops_parent_session_variables(tmp_path, monkeypatch):
@@ -174,3 +176,201 @@ def test_run_claude_drops_parent_session_variables(tmp_path, monkeypatch):
     child_env = {name.upper() for name in json.loads(output["result"])}
     assert child_env.isdisjoint(responder.PARENT_SESSION_VARS)
     assert "CLAUDE_CODE_USE_BEDROCK" in child_env
+
+
+def test_remediation_command_allows_edits_only_under_app_and_tests(monkeypatch):
+    monkeypatch.setattr(responder.shutil, "which", lambda name: "/usr/bin/claude")
+    command = responder.claude_command(
+        remediate=True, budget_usd=1.5, resume="sess-1", add_dirs=["/incident"]
+    )
+    tools = command[command.index("--tools") + 1]
+    allowed = command[command.index("--allowedTools") + 1]
+    assert tools == "Read,Grep,Glob,Edit,Write"
+    assert allowed == "Read,Grep,Glob,Edit(app/**),Edit(tests/**)"
+    assert "Bash" not in tools + allowed and "PowerShell" not in tools + allowed
+    assert "--restricted" in command and "--strict-mcp-config" in command
+    assert command[command.index("--permission-mode") + 1] == "dontAsk"
+    assert command[command.index("--max-budget-usd") + 1] == "1.50"
+    assert command[command.index("--resume") + 1] == "sess-1"
+    assert command[command.index("--add-dir") + 1] == "/incident"
+
+
+def test_outside_editable():
+    assert responder.outside_editable(
+        ["app/main.py", "tests/test_api.py", "compose.yaml", "Dockerfile", "appx/a.py", "app"]
+    ) == ["compose.yaml", "Dockerfile", "appx/a.py", "app"]
+
+
+# --- Remediation flow against a real temporary git repository ---------------------------
+
+
+def git(repo, *args):
+    return subprocess.run(
+        ["git", *args], cwd=repo, check=True, capture_output=True, text=True
+    ).stdout.strip()
+
+
+@pytest.fixture
+def remediation(tmp_path, monkeypatch):
+    """A temp repo, plus fakes for Claude, tests, deploy, verify, and rollback."""
+    repo = tmp_path / "repo"
+    (repo / "app").mkdir(parents=True)
+    (repo / "tests").mkdir()
+    (repo / "app" / "main.py").write_text("BUG = True\n")
+    (repo / "tests" / "test_api.py").write_text("def test_api(): pass\n")
+    (repo / "compose.yaml").write_text("services: {}\n")
+    git(repo, "init", "-q", "-b", "main")
+    git(repo, "config", "user.name", "Test")
+    git(repo, "config", "user.email", "test@example.com")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "initial")
+
+    incident_dir = tmp_path / "incidents" / "20260930T000000Z-order-lookup-5xx"
+    incident_dir.mkdir(parents=True)
+    responder.write_json(incident_dir / "logs.json", {"errors": {"entries": [
+        {"order_id": "express-1002"}, {"order_id": "express-1002"},
+    ]}})
+
+    monkeypatch.setattr(responder, "REPO_ROOT", repo)
+    monkeypatch.setattr(responder, "WORKTREES_DIR", tmp_path / "worktrees")
+    monkeypatch.setattr(responder, "CLAUDE_MAX_BUDGET_USD", 2.0)
+    monkeypatch.setattr(responder.shutil, "which", lambda name: "/usr/bin/claude")
+
+    harness = type("Harness", (), {})()
+    harness.repo, harness.incident_dir = repo, incident_dir
+    harness.calls = calls = {"claude": [], "tests": 0, "deploy": 0, "verify": [], "rollback": []}
+    harness.edits = edits = []  # one callable per Claude round: edit(worktree)
+    harness.test_results = test_results = [(True, "1 passed")]
+    harness.verify_result = verify_result = [(True, [{"status": 200}])]
+
+    def fake_run_claude(incident_dir, prompt, command=None, cwd=None, suffix=""):
+        calls["claude"].append({"prompt": prompt, "command": command, "cwd": cwd})
+        edits[len(calls["claude"]) - 1](Path(cwd))
+        return {"exit_code": 0, "is_error": False, "session_id": "sess-1", "cost_usd": 0.4}
+
+    def fake_run_tests(worktree):
+        calls["tests"] += 1
+        return test_results[calls["tests"] - 1]
+
+    def fake_deploy(worktree):
+        calls["deploy"] += 1
+        calls["deployed_code"] = (worktree / "app" / "main.py").read_text()
+        return True, "sha256:previous", "deployed"
+
+    def fake_verify(order_ids):
+        calls["verify"].append(order_ids)
+        return verify_result[0]
+
+    def fake_rollback(worktree, previous_image):
+        calls["rollback"].append(previous_image)
+        return True, "rolled back"
+
+    monkeypatch.setattr(responder, "run_claude", fake_run_claude)
+    monkeypatch.setattr(responder, "run_tests", fake_run_tests)
+    monkeypatch.setattr(responder, "deploy", fake_deploy)
+    monkeypatch.setattr(responder, "verify", fake_verify)
+    monkeypatch.setattr(responder, "rollback", fake_rollback)
+    harness.run = lambda: responder.Responder()._remediate(
+        incident_dir, alert_payload(), "evidence"
+    )
+    return harness
+
+
+def fix_bug(worktree):
+    (worktree / "app" / "main.py").write_text("BUG = False\n")
+    (worktree / "tests" / "test_regression.py").write_text("def test_fixed(): pass\n")
+
+
+def test_remediation_commits_deploys_and_verifies(remediation):
+    remediation.edits.append(fix_bug)
+
+    state, details = remediation.run()
+
+    assert state == "fixed"
+    branch = "incident/20260930T000000Z-order-lookup-5xx"
+    assert details["branch"] == branch
+    assert git(remediation.repo, "rev-parse", branch) == details["commit"]
+    assert git(remediation.repo, "show", f"{branch}:app/main.py") == "BUG = False"
+    assert "Co-Authored-By: Claude" in git(remediation.repo, "log", "-1", "--format=%B", branch)
+    # The main tree and branch are untouched; the deployed code is the fix.
+    assert (remediation.repo / "app" / "main.py").read_text() == "BUG = True\n"
+    assert git(remediation.repo, "rev-parse", "main") != details["commit"]
+    assert remediation.calls["deployed_code"] == "BUG = False\n"
+    assert remediation.calls["verify"] == [["express-1002"]]
+    assert remediation.calls["rollback"] == []
+    # Claude ran in the worktree with the edit allowlist and could read the evidence.
+    first = remediation.calls["claude"][0]
+    assert first["cwd"].name == "20260930T000000Z-order-lookup-5xx"
+    assert "Edit(app/**)" in first["command"][first["command"].index("--allowedTools") + 1]
+    assert first["command"][first["command"].index("--add-dir") + 1] == str(
+        remediation.incident_dir
+    )
+    assert responder.REMEDIATE_CAPABILITIES in first["prompt"]
+    report = json.loads((remediation.incident_dir / "remediation.json").read_text())
+    assert report["changed_files"] == ["app/main.py", "tests/test_regression.py"]
+    assert not Path(report["worktree"]).exists()
+
+
+def test_failed_tests_go_back_to_the_same_session(remediation):
+    remediation.edits += [
+        lambda wt: (wt / "app" / "main.py").write_text("BUG = 'half fixed'\n"),
+        fix_bug,
+    ]
+    remediation.test_results[:] = [(False, "FAILED tests/test_api.py::test_x"), (True, "ok")]
+
+    state, details = remediation.run()
+
+    assert state == "fixed"
+    assert details["rounds"] == 2 and details["cost_usd"] == 0.8
+    second = remediation.calls["claude"][1]
+    assert "FAILED tests/test_api.py::test_x" in second["prompt"]
+    assert second["command"][second["command"].index("--resume") + 1] == "sess-1"
+    # The second round only gets what is left of the per-incident budget.
+    assert second["command"][second["command"].index("--max-budget-usd") + 1] == "1.60"
+
+
+def test_changes_outside_app_and_tests_are_rejected(remediation):
+    def edit_compose(worktree):
+        fix_bug(worktree)
+        (worktree / "compose.yaml").write_text("services: {evil: {}}\n")
+
+    remediation.edits.append(edit_compose)
+
+    state, details = remediation.run()
+
+    assert state == "fix_rejected"
+    assert remediation.calls["tests"] == 0 and remediation.calls["deploy"] == 0
+    assert details["commit"] is None
+    report = json.loads((remediation.incident_dir / "remediation.json").read_text())
+    assert report["rejected_files"] == ["compose.yaml"]
+
+
+def test_no_changes_means_no_fix(remediation):
+    remediation.edits.append(lambda worktree: None)
+
+    state, details = remediation.run()
+
+    assert state == "no_fix"
+    assert remediation.calls["tests"] == 0 and remediation.calls["deploy"] == 0
+    assert details["branch"] is None
+    assert "incident/" not in git(remediation.repo, "branch", "--list")
+
+
+def test_failed_verification_rolls_back(remediation):
+    remediation.edits.append(fix_bug)
+    remediation.verify_result[0] = (False, [{"status": 500}])
+
+    state, _ = remediation.run()
+
+    assert state == "rolled_back"
+    assert remediation.calls["rollback"] == ["sha256:previous"]
+
+
+def test_tests_that_keep_failing_are_not_deployed(remediation):
+    remediation.edits += [fix_bug, fix_bug]
+    remediation.test_results[:] = [(False, "FAILED"), (False, "FAILED again")]
+
+    state, details = remediation.run()
+
+    assert state == "tests_failed"
+    assert remediation.calls["deploy"] == 0 and details["commit"] is None

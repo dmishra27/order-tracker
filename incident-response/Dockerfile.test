@@ -1,0 +1,15 @@
+# Runs the test suite for a proposed fix. The responder builds this with the incident
+# worktree as context, then runs it with `--network none` and the worktree mounted
+# read-only at /src, so model-written code never executes on the host.
+FROM python:3.12-slim
+
+COPY --from=ghcr.io/astral-sh/uv:0.8.22 /uv /uvx /bin/
+ENV UV_PROJECT_ENVIRONMENT=/opt/venv \
+    PATH=/opt/venv/bin:$PATH \
+    PYTHONDONTWRITEBYTECODE=1
+WORKDIR /deps
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-install-project
+
+WORKDIR /src
+CMD ["python", "-m", "pytest", "-q", "-p", "no:cacheprovider"]
