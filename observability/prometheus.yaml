@@ -1,0 +1,8 @@
+# Metrics arrive over OTLP from the Collector, so there is nothing to scrape.
+global:
+  evaluation_interval: 15s
+
+storage:
+  tsdb:
+    # OTLP pushes can arrive slightly out of order.
+    out_of_order_time_window: 30m

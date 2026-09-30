@@ -20,6 +20,25 @@ If port 8000 is occupied, set `ORDER_TRACKER_PORT`, for example:
 ORDER_TRACKER_PORT=18080 docker compose up --build -d --wait
 ```
 
+## Observability
+
+Compose also starts an OpenTelemetry Collector, Prometheus, Loki, Tempo, and Grafana. The app sends metrics, logs, and traces for order lookups (`GET /api/orders/{id}`) over OTLP to the Collector, which forwards them to Prometheus, Loki, and Tempo respectively.
+
+Open Grafana at <http://127.0.0.1:3000> (no login). The home dashboard, **Order lookups**, shows request counts, 4xx and 5xx errors, the error rate, and recent failed lookups; log lines link to their traces in Tempo. Prometheus is at <http://127.0.0.1:9090>. Use `GRAFANA_PORT` and `PROMETHEUS_PORT` to change the ports.
+
+All configuration lives in `observability/`:
+
+| Path | Purpose |
+| --- | --- |
+| `otel-collector.yaml` | OTLP receiver and one pipeline per signal |
+| `prometheus.yaml`, `loki.yaml`, `tempo.yaml` | Backend configuration |
+| `grafana/provisioning/` | Data sources and dashboard provider |
+| `grafana/dashboards/order-lookups.json` | The provisioned dashboard |
+
+Outside Compose, the app prints telemetry to the console unless `OTEL_EXPORTER_OTLP_ENDPOINT` is set.
+
+## Tests
+
 Run tests with `uv run --frozen pytest -q`. Stop the app with `docker compose down`. Add `-v` only if you also want to delete the order data.
 
 ## API
