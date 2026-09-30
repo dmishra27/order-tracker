@@ -1,0 +1,9 @@
+Fix Order lookup 5xx responses (incident 20260930T204610Z-order-lookup-5xx-responses)
+
+Automated fix by the incident responder: written by headless Claude Code,
+tested in an isolated container, and deployed to the app service.
+
+Report: incident-response/incidents/20260930T204610Z-order-lookup-5xx-responses/response.md
+Claude session: 18fbb99d-1acd-4ca4-abc6-b0df07c19485
+
+Co-Authored-By: Claude <noreply@anthropic.com>

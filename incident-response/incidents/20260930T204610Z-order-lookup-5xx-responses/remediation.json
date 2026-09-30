@@ -1,0 +1,29 @@
+{
+  "branch": "incident/20260930T204610Z-order-lookup-5xx-responses",
+  "worktree": "C:\\Users\\dmish\\projects\\order-tracker\\incident-response\\worktrees\\20260930T204610Z-order-lookup-5xx-responses",
+  "rounds": [
+    {
+      "exit_code": 0,
+      "is_error": false,
+      "session_id": "18fbb99d-1acd-4ca4-abc6-b0df07c19485",
+      "cost_usd": 0.2229036
+    }
+  ],
+  "changed_files": [
+    "app/main.py",
+    "tests/test_api.py"
+  ],
+  "tests_passed": true,
+  "commit": "3f5052cb26913c24d91ad4e9e541af53d0ee58a0",
+  "previous_image": "sha256:4d94384309024bc1fb39e8a9eab5d218a15d9a57f85324c32b02315106e634e4",
+  "verification": [
+    {
+      "url": "http://127.0.0.1:8000/healthz",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:8000/api/orders/express-1002",
+      "status": 200
+    }
+  ]
+}

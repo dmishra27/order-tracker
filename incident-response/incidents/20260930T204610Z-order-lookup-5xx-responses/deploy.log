@@ -1,0 +1,97 @@
+#1 [internal] load local bake definitions
+#1 reading from stdin 687B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 381B 0.0s done
+#2 DONE 0.1s
+
+#3 [internal] load metadata for ghcr.io/astral-sh/uv:0.8.22
+#3 ...
+
+#4 [internal] load metadata for docker.io/library/python:3.12-slim
+#4 DONE 0.3s
+
+#3 [internal] load metadata for ghcr.io/astral-sh/uv:0.8.22
+#3 DONE 0.4s
+
+#5 [internal] load .dockerignore
+#5 transferring context: 108B done
+#5 DONE 0.0s
+
+#6 FROM ghcr.io/astral-sh/uv:0.8.22@sha256:9874eb7afe5ca16c363fe80b294fe700e460df29a55532bbfea234a0f12eddb1
+#6 DONE 0.0s
+
+#7 [stage-0 1/7] FROM docker.io/library/python:3.12-slim@sha256:f77ac9e44ae96ef2c90b8053ea08c31f8be030f824196b0ae4db6d462c84e51f
+#7 DONE 0.0s
+
+#8 [internal] load build context
+#8 transferring context: 13.14kB 0.2s done
+#8 DONE 0.2s
+
+#9 [stage-0 2/7] COPY --from=ghcr.io/astral-sh/uv:0.8.22 /uv /uvx /bin/
+#9 CACHED
+
+#10 [stage-0 3/7] WORKDIR /app
+#10 CACHED
+
+#11 [stage-0 4/7] COPY pyproject.toml uv.lock ./
+#11 DONE 0.1s
+
+#12 [stage-0 5/7] RUN uv sync --frozen --no-dev
+#12 1.657 Using CPython 3.12.14 interpreter at: /usr/local/bin/python3
+#12 1.659 Creating virtual environment at: .venv
+#12 1.991 Downloading pydantic-core (2.0MiB)
+#12 3.342  Downloading pydantic-core
+#12 3.386 Prepared 25 packages in 1.68s
+#12 3.555 Installed 25 packages in 167ms
+#12 3.556  + annotated-doc==0.0.5
+#12 3.556  + annotated-types==0.8.0
+#12 3.556  + anyio==4.15.1
+#12 3.556  + certifi==2026.7.22
+#12 3.556  + charset-normalizer==3.5.1
+#12 3.556  + click==8.5.0
+#12 3.556  + fastapi==0.141.1
+#12 3.556  + googleapis-common-protos==1.75.3
+#12 3.556  + h11==0.16.0
+#12 3.556  + idna==3.20
+#12 3.556  + opentelemetry-api==1.44.0
+#12 3.556  + opentelemetry-exporter-otlp-proto-common==1.44.0
+#12 3.556  + opentelemetry-exporter-otlp-proto-http==1.44.0
+#12 3.556  + opentelemetry-proto==1.44.0
+#12 3.556  + opentelemetry-sdk==1.44.0
+#12 3.556  + opentelemetry-semantic-conventions==0.65b0
+#12 3.556  + protobuf==7.36.2
+#12 3.556  + pydantic==2.13.5
+#12 3.556  + pydantic-core==2.46.5
+#12 3.556  + requests==2.34.2
+#12 3.556  + starlette==1.6.0
+#12 3.556  + typing-extensions==4.16.0
+#12 3.556  + typing-inspection==0.4.4
+#12 3.556  + urllib3==2.8.0
+#12 3.556  + uvicorn==0.53.0
+#12 DONE 3.7s
+
+#13 [stage-0 6/7] COPY app ./app
+#13 DONE 0.1s
+
+#14 [stage-0 7/7] COPY static ./static
+#14 DONE 0.1s
+
+#15 exporting to image
+#15 exporting layers
+#15 exporting layers 0.9s done
+#15 writing image sha256:9c6956bdaf678f585c7936b90aa5a0675b5eb3bd35659e94cead7bad1a76aae1 done
+#15 naming to docker.io/library/order-tracker:local 0.0s done
+#15 DONE 1.0s
+
+#16 resolving provenance for metadata file
+#16 DONE 0.0s
+ Image order-tracker:local Building 
+ Image order-tracker:local Built 
+ Container order-tracker-app-1 Recreate 
+ Container order-tracker-app-1 Recreated 
+ Container order-tracker-app-1 Starting 
+ Container order-tracker-app-1 Started 
+ Container order-tracker-app-1 Waiting 
+ Container order-tracker-app-1 Healthy 

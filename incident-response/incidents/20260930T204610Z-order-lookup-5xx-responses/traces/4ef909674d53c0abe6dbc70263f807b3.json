@@ -1,0 +1,130 @@
+{
+  "trace": {
+    "resourceSpans": [
+      {
+        "resource": {
+          "attributes": [
+            {
+              "key": "service.instance.id",
+              "value": {
+                "stringValue": "06f03ea7-ca35-4931-a2f0-4237145e88a6"
+              }
+            },
+            {
+              "key": "telemetry.sdk.language",
+              "value": {
+                "stringValue": "python"
+              }
+            },
+            {
+              "key": "telemetry.sdk.name",
+              "value": {
+                "stringValue": "opentelemetry"
+              }
+            },
+            {
+              "key": "telemetry.sdk.version",
+              "value": {
+                "stringValue": "1.44.0"
+              }
+            },
+            {
+              "key": "service.name",
+              "value": {
+                "stringValue": "order-tracker"
+              }
+            }
+          ]
+        },
+        "scopeSpans": [
+          {
+            "scope": {
+              "name": "order_tracker"
+            },
+            "spans": [
+              {
+                "traceId": "TvkJZ01TwKvm28cCY/gHsw==",
+                "spanId": "I+aWHVrLTE0=",
+                "name": "GET /api/orders/{order_id}",
+                "kind": "SPAN_KIND_SERVER",
+                "startTimeUnixNano": "1790800528043388850",
+                "endTimeUnixNano": "1790800528091989153",
+                "attributes": [
+                  {
+                    "key": "order.id",
+                    "value": {
+                      "stringValue": "express-1002"
+                    }
+                  },
+                  {
+                    "key": "http.request.method",
+                    "value": {
+                      "stringValue": "GET"
+                    }
+                  },
+                  {
+                    "key": "http.response.status_code",
+                    "value": {
+                      "intValue": "500"
+                    }
+                  },
+                  {
+                    "key": "url.path",
+                    "value": {
+                      "stringValue": "/api/orders/express-1002"
+                    }
+                  },
+                  {
+                    "key": "http.route",
+                    "value": {
+                      "stringValue": "/api/orders/{order_id}"
+                    }
+                  }
+                ],
+                "events": [
+                  {
+                    "timeUnixNano": "1790800528091324363",
+                    "name": "exception",
+                    "attributes": [
+                      {
+                        "key": "exception.type",
+                        "value": {
+                          "stringValue": "ValueError"
+                        }
+                      },
+                      {
+                        "key": "exception.message",
+                        "value": {
+                          "stringValue": "day is out of range for month"
+                        }
+                      },
+                      {
+                        "key": "exception.stacktrace",
+                        "value": {
+                          "stringValue": "Traceback (most recent call last):\n  File \"/app/.venv/lib/python3.12/site-packages/opentelemetry/trace/__init__.py\", line 608, in use_span\n    yield span\n  File \"/app/.venv/lib/python3.12/site-packages/opentelemetry/sdk/trace/__init__.py\", line 1183, in start_as_current_span\n    yield span\n  File \"/app/app/main.py\", line 126, in instrument_order_lookup\n    response = await call_next(request)\n               ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/app/.venv/lib/python3.12/site-packages/starlette/middleware/base.py\", line 168, in call_next\n    raise app_exc from app_exc.__cause__ or app_exc.__context__\n  File \"/app/.venv/lib/python3.12/site-packages/starlette/middleware/base.py\", line 144, in coro\n    await self.app(scope, receive_or_disconnect, send_no_error)\n  File \"/app/.venv/lib/python3.12/site-packages/starlette/middleware/exceptions.py\", line 63, in __call__\n    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)\n  File \"/app/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py\", line 53, in wrapped_app\n    raise exc\n  File \"/app/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py\", line 42, in wrapped_app\n    await app(scope, receive, sender)\n  File \"/app/.venv/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py\", line 18, in __call__\n    await self.app(scope, receive, send)\n  File \"/app/.venv/lib/python3.12/site-packages/starlette/routing.py\", line 670, in __call__\n    await self.middleware_stack(scope, receive, send)\n  File \"/app/.venv/lib/python3.12/site-packages/fastapi/routing.py\", line 2734, in app\n    await route.handle(scope, receive, send)\n  File \"/app/.venv/lib/python3.12/site-packages/fastapi/routing.py\", line 1281, in handle\n    await super().handle(scope, receive, send)\n  File \"/app/.venv/lib/python3.12/site-packages/starlette/routing.py\", line 280, in handle\n    await self.app(scope, receive, send)\n  File \"/app/.venv/lib/python3.12/site-packages/fastapi/routing.py\", line 158, in app\n    await wrap_app_handling_exceptions(app, request)(sco"
+                        }
+                      },
+                      {
+                        "key": "exception.escaped",
+                        "value": {
+                          "stringValue": "False"
+                        }
+                      }
+                    ]
+                  }
+                ],
+                "status": {
+                  "message": "ValueError: day is out of range for month",
+                  "code": "STATUS_CODE_ERROR"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "metrics": {
+    "inspectedBytes": "46966"
+  }
+}

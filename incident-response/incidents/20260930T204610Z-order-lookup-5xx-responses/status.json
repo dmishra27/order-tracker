@@ -1,0 +1,10 @@
+{
+  "state": "fixed",
+  "updated_at": "2026-09-30T20:47:23.884488+00:00",
+  "duration_s": 72,
+  "branch": "incident/20260930T204610Z-order-lookup-5xx-responses",
+  "commit": "3f5052cb26913c24d91ad4e9e541af53d0ee58a0",
+  "session_id": "18fbb99d-1acd-4ca4-abc6-b0df07c19485",
+  "cost_usd": 0.2229,
+  "rounds": 1
+}
