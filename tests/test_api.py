@@ -35,6 +35,28 @@ def test_missing_order(client):
     assert client.get("/api/orders/missing").status_code == 404
 
 
+def test_express_order_placed_at_month_end(client):
+    # The seeded express order is placed on the last day of the previous month.
+    response = client.get("/api/orders/express-1002")
+    assert response.status_code == 200
+    assert "estimated_delivery" in response.json()
+
+
+@pytest.mark.parametrize(
+    ("created_at", "expected"),
+    [
+        ("2026-08-31T12:00:00+00:00", "2026-09-02"),
+        ("2026-09-30T12:00:00+00:00", "2026-10-02"),
+        ("2026-12-31T12:00:00+00:00", "2027-01-02"),
+        ("2028-02-28T12:00:00+00:00", "2028-03-01"),
+        ("2026-09-10T12:00:00+00:00", "2026-09-12"),
+    ],
+)
+def test_express_estimated_delivery_crosses_month_boundary(created_at, expected):
+    row = {"id": "express-x", "priority": "express", "created_at": created_at}
+    assert main.order_detail(row)["estimated_delivery"] == expected
+
+
 ORDER_ROUTE = "/api/orders/{order_id}"
 
 
