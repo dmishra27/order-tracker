@@ -35,7 +35,13 @@ All configuration lives in `observability/`:
 | `grafana/provisioning/` | Data sources, dashboard provider, and alert rules |
 | `grafana/dashboards/order-lookups.json` | The provisioned dashboard |
 
-The **Order lookup 5xx responses** alert rule (`grafana/provisioning/alerting/order-lookups.yaml`) fires when any `GET /api/orders/{id}` request returned a 5xx status in the last 5 minutes, and resolves once 5 minutes pass without one. See it under **Alerting → Alert rules** in Grafana. No contact point is configured yet, so alerts show in Grafana but are not sent anywhere.
+The **Order lookup 5xx responses** alert rule (`grafana/provisioning/alerting/order-lookups.yaml`) fires when any `GET /api/orders/{id}` request returned a 5xx status in the last 5 minutes, and resolves once 5 minutes pass without one. See it under **Alerting → Alert rules** in Grafana. Alerts are sent to the incident responder (see below).
+
+Loki is at <http://127.0.0.1:3100> and Tempo at <http://127.0.0.1:3200>. Use `LOKI_PORT` and `TEMPO_PORT` to change the ports.
+
+## Incident responder
+
+`incident-response/responder.py` receives Grafana alert webhooks on `127.0.0.1:8001`. For each alert, it saves the relevant metrics, logs, and traces to `incident-response/incidents/<id>/`. It then runs Claude Code headless with read-only tools and saves the investigation to `response.md` in the same folder. Start it on the host with `uv run python incident-response/responder.py`. See [`incident-response/README.md`](incident-response/README.md).
 
 Outside Compose, the app prints telemetry to the console unless `OTEL_EXPORTER_OTLP_ENDPOINT` is set.
 
