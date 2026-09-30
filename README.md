@@ -32,8 +32,10 @@ All configuration lives in `observability/`:
 | --- | --- |
 | `otel-collector.yaml` | OTLP receiver and one pipeline per signal |
 | `prometheus.yaml`, `loki.yaml`, `tempo.yaml` | Backend configuration |
-| `grafana/provisioning/` | Data sources and dashboard provider |
+| `grafana/provisioning/` | Data sources, dashboard provider, and alert rules |
 | `grafana/dashboards/order-lookups.json` | The provisioned dashboard |
+
+The **Order lookup 5xx responses** alert rule (`grafana/provisioning/alerting/order-lookups.yaml`) fires when any `GET /api/orders/{id}` request returned a 5xx status in the last 5 minutes, and resolves once 5 minutes pass without one. See it under **Alerting → Alert rules** in Grafana. No contact point is configured yet, so alerts show in Grafana but are not sent anywhere.
 
 Outside Compose, the app prints telemetry to the console unless `OTEL_EXPORTER_OTLP_ENDPOINT` is set.
 

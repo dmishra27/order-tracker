@@ -72,6 +72,8 @@ services:
       GF_AUTH_ANONYMOUS_ENABLED: "true"
       GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
       GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      # Base for links in alert notifications and the alert rule's dashboard_url.
+      GF_SERVER_ROOT_URL: http://127.0.0.1:${GRAFANA_PORT:-3000}/
       GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/dashboards/order-lookups.json
     volumes:
       - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro

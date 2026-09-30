@@ -1,0 +1,59 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: order-lookups
+    folder: Order Tracker
+    interval: 1m
+    rules:
+      - uid: order-lookup-5xx
+        title: Order lookup 5xx responses
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              refId: A
+              instant: true
+              range: false
+              # `or vector(0)` turns "no 5xx series" into a real 0, so quiet periods and a
+              # freshly started app evaluate to Normal instead of No Data.
+              expr: >-
+                sum(increase(http_server_request_duration_seconds_count{job="order-tracker",
+                http_request_method="GET", http_route="/api/orders/{order_id}",
+                http_response_status_code=~"5.."}[5m])) or vector(0)
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+        # Any 5xx in the window fires on the next evaluation.
+        for: 0s
+        # Backstop for the `or vector(0)` above: an empty result is not an incident.
+        noDataState: OK
+        # A failing query (e.g. Prometheus down) surfaces as a DatasourceError alert.
+        execErrState: Error
+        labels:
+          severity: critical
+          service: order-tracker
+          route: /api/orders/{order_id}
+        annotations:
+          summary: Order lookups are returning 5xx errors
+          description: >-
+            GET /api/orders/{order_id} returned about
+            {{ printf "%.0f" $values.A.Value }} 5xx response(s) in the last 5 minutes.
+          endpoint: GET /api/orders/{order_id}
+          evaluation_window: 5m (rule evaluated every 1m)
+          # externalURL is GF_SERVER_ROOT_URL (set in compose.yaml), with a trailing slash.
+          dashboard_url: '{{ externalURL }}d/order-lookups/order-lookups'
+          # Grafana links alert notifications and the alert list to this dashboard panel.
+          __dashboardUid__: order-lookups
+          __panelId__: "2"
